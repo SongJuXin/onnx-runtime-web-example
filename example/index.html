@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<header>
+  <title>onnx-runtime-web-example</title>
+  <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jimp/0.16.2-canary.1082.1294.0/jimp.js"></script>
+  <script src="./imagent.js"></script>
+  <script src="./onnx.js"></script>
+</header>
+<body>
+<div style="display: flex;gap: 30px">
+  <div>
+    <p>Image Classification),Please select a image </p>
+    <input type="file">
+  </div>
+  <img style="height: 300px" src="./dog.jpg" alt="">
+  <div style="border: 1px solid #aaa;width: 500px;height: 300px">
+    result:
+    <div id="result"></div>
+  </div>
+
+</div>
+<script>
+  window.Tensor = ort.Tensor
+  init()
+  document.querySelector('input').onchange = function (e) {
+    const file = e.target.files[0]
+    if (!file) return
+
+    fileToUrl(file, async (src) => {
+      document.querySelector('img').src = src
+      const clearLoading = renderLoading()
+      const [inferenceResult, inferenceTime] = await inferenceSqueezenet(src);
+      clearLoading()
+      renderResult(inferenceResult, inferenceTime)
+    })
+
+
+  }
+
+  function fileToUrl(file, cb) {
+    const reader = new FileReader()
+    reader.readAsDataURL(file)
+    reader.onload = async () => {
+      const src = reader.result
+      cb(src)
+    }
+  }
+
+  async function init() {
+    const clearLoading = renderLoading()
+    const src = document.querySelector('img').src
+
+    const [inferenceResult, inferenceTime] = await inferenceSqueezenet(src);
+    clearLoading()
+    renderResult(inferenceResult, inferenceTime)
+  }
+
+  function renderResult(inferenceResult, inferenceTime) {
+    document.querySelector('#result').innerHTML = `
+<div>
+<div>ccost time: ${inferenceTime}s</div>
+<ul>
+${inferenceResult.reduce((str, item) => str += `<li>probability: ${item.probability};name: ${item.name}</li>`, '')}
+</ul>
+</div>
+`
+  }
+
+  function renderLoading() {
+    document.querySelector('input').disabled=true;
+    document.querySelector('#result').innerHTML='loading...'
+    return () => {
+      document.querySelector('input').disabled=false
+    }
+  }
+
+</script>
+</body>
+</html>
