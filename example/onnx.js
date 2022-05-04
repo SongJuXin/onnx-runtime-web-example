@@ -25,7 +25,7 @@ async function inferenceSqueezenet(path) {
   // Create session and set options. See the docs here for more options:
   //https://onnxruntime.ai/docs/api/js/interfaces/InferenceSession.SessionOptions.html#graphOptimizationLevel
   const session = await ort.InferenceSession
-    .create('./squeezenet1_1.onnx',
+    .create('example/squeezenet1_1.onnx',
       { executionProviders: ['webgl'], graphOptimizationLevel: 'all' });
   console.log('Inference session created');
   // Run inference and get results.
