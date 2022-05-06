@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<header>
+  <title>onnx-runtime-web-example mobilenetv2-7</title>
+  <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jimp/0.16.2-canary.1082.1294.0/jimp.js"></script>
+  <script src="example/imagent.js"></script>
+  <script src="mobilenet/mobilenet.js"></script>
+</header>
+<body>
+<div>
+  <a href="./mobilenet.html">mobilenet</a>
+  <a href="./squeezenet1_1.html">squeezenet</a>
+</div>
+<div style="display: flex;gap: 30px">
+  <div>
+    <h2>Image Classification  </h2>
+    <p>model: mobilenetv2-7</p>
+    <p>Please select a image</p>
+    <input type="file">
+  </div>
+  <img style="height: 300px" src="example/dog.jpg" alt="">
+  <div style="border: 1px solid #aaa;width: 800px;height: 300px">
+    result:
+    <div id="result" style="display: flex"></div>
+  </div>
+
+</div>
+<script>
+  window.Tensor = ort.Tensor
+  init()
+  document.querySelector('input').onchange = function (e) {
+    const file = e.target.files[0]
+    if (!file) return
+
+    fileToUrl(file, async (src) => {
+      document.querySelector('img').src = src
+      const clearLoading = renderLoading()
+      const [
+        [webglInferenceResult, webglInferenceTime],
+        [wasmInferenceResult, wasmInferenceTime],
+      ] = await inferenceSqueezenet(src);
+      clearLoading()
+      renderResult([webglInferenceResult, webglInferenceTime],[wasmInferenceResult, wasmInferenceTime])
+    })
+
+
+  }
+
+  function fileToUrl(file, cb) {
+    const reader = new FileReader()
+    reader.readAsDataURL(file)
+    reader.onload = async () => {
+      const src = reader.result
+      cb(src)
+    }
+  }
+
+  async function init() {
+    const clearLoading = renderLoading()
+    const src = document.querySelector('img').src
+
+    const [
+      [webglInferenceResult, webglInferenceTime],
+      [wasmInferenceResult, wasmInferenceTime],
+    ] = await inferenceSqueezenet(src);
+    clearLoading()
+    renderResult([webglInferenceResult, webglInferenceTime],[wasmInferenceResult, wasmInferenceTime])
+  }
+
+  function renderResult([webglInferenceResult, webglInferenceTime],[wasmInferenceResult, wasmInferenceTime]) {
+    const getHtml=(exector,time,arr)=>`
+<div>
+<h3>${exector}</h3>
+<div>cost time: ${time}s</div>
+<ul>
+${arr.reduce((str, item) => str += `<li>probability: ${item.probability};name: ${item.name}</li>`, '')}
+</ul>
+</div>
+`
+    document.querySelector('#result').innerHTML =getHtml('webgl',webglInferenceTime,webglInferenceResult)+getHtml('wasm',wasmInferenceTime,wasmInferenceResult)
+  }
+
+  function renderLoading() {
+    document.querySelector('input').disabled=true;
+    document.querySelector('#result').innerHTML='loading...'
+    return () => {
+      document.querySelector('input').disabled=false
+    }
+  }
+
+</script>
+</body>
+</html>
